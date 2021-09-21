@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "helmchartbachelor.fullname" . }}
+  labels:
+    {{- include "helmchartbachelor.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "helmchartbachelor.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "helmchartbachelor.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "helmchartbachelor.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Values.image.name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: {{  range .Values.containers.command }}
+        - {{ . }}
+      {{ end }}
+        ports:
+          - name: {{ .Values.containers.ports.name }}
+            containerPort: {{ .Values.containers.ports.containerPort}}
+            protocol: {{ .Values.containers.ports.protocol}}
+        volumeMounts:
+        - mountPath: {{ .Values.containers.volumeMounts.mountPath}}
+          name: {{ .Values.initContainers.volumeMounts.name }}
+      initContainers:
+      - name: {{ .Values.initContainers.name }}
+        command: {{  range .Values.initContainers.command }}
+        - {{ . }}
+      {{ end }}
+        image: {{ .Values.initContainers.image }}
+        volumeMounts:
+        - mountPath: {{ .Values.initContainers.volumeMounts.mountPath }}
+          name: {{ .Values.initContainers.volumeMounts.name }}
+      volumes:
+        - name: {{ .Values.initContainers.volumeMounts.name }}
+          emptyDir: {{ .Values.volumes.emptyDir }}
+

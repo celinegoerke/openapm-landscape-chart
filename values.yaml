@@ -1,0 +1,40 @@
+replicaCount: 1
+
+image:
+  repository: celinegoerke/petclinic
+  pullPolicy: IfNotPresent
+  tag: "latest"
+  name: "java-app"
+
+serviceAccount:
+  create: true
+
+service:
+  type: ClusterIP
+  port: 80
+
+containers:
+  command: ['java', '-javaagent:/opt/inspectit.jar', '-jar', '/petclinic.jar']
+  ports:
+      name: http
+      containerPort: 8080
+      protocol: TCP
+  volumeMounts:
+    mountPath: /opt
+
+initContainers:
+  name: inspectit-agent
+  command: ['cp', '/agent/inspectit.jar',  '/work-dir']    
+  image: celinegoerke/inspectit:5.0
+  volumeMounts:
+    mountPath: "/work-dir"
+    name: inspectit-agent-repo
+
+volumes:
+  emptyDir: "{}"
+
+ingress:
+  enabled: false
+  
+autoscaling:
+  enabled: false
